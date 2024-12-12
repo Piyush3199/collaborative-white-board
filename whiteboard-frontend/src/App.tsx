@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import Whiteboard from './components/Whiteboard'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 function App() {
 
   return (
-    
-      <div className="App">
-        <Whiteboard />
-      </div>
-       
-    
+    <Router>
+      <Routes>
+        <Route path="/" element={<Whiteboard />}></Route>
+      </Routes>
+    </Router>
   )
 }
 

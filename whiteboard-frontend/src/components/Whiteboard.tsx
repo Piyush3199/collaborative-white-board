@@ -5,6 +5,12 @@ interface CanvasProps {
     height ?: number;
 }
 
+interface DrawingData{
+    x: number;
+    y: number;
+    color: string;
+    brushSize: number; 
+}
 const Whiteboard: React.FC<CanvasProps> = ({
     // width = 1000,
     height = 600
@@ -14,7 +20,38 @@ const Whiteboard: React.FC<CanvasProps> = ({
     const [currentColor, setCurrentColor] = useState<string>('#000000');
     const [brushSize, setBrushSize] = useState<number>(2); 
     const [canvasWidth, setCanvasWidth] = useState<number>(window.innerWidth - 20); // Initial width minus padding
+    const wsRef = useRef<WebSocket | null>(null);
 
+    useEffect(()=>{
+        wsRef.current = new WebSocket(`ws://localhost:8080`);
+        wsRef.current.onopen = ()=> console.log('connected to ws sewerver');
+        wsRef.current.onclose = ()=> console.log('disconnected from server');
+
+        //Incoming drawing data
+        wsRef.current.onmessage = (e) =>{
+            const data: DrawingData = JSON.parse(e.data);
+            drawFromServer(data);
+        };
+
+        return ()=>{
+            wsRef.current?.close();
+        };
+        
+    },[]);
+
+
+    const drawFromServer = (data:DrawingData) =>{
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext('2d');
+        if(!canvas || !context) return;
+
+        context.strokeStyle = data.color;
+        context.lineWidth = data.brushSize;
+        context.lineTo(data.x, data.y);
+        context.stroke();
+    }
+    
+    
     useEffect(() => {
         const handleResize = () => {
           setCanvasWidth(window.innerWidth - 20); // Adjust canvas to full width of the browser minus padding
@@ -53,6 +90,10 @@ const Whiteboard: React.FC<CanvasProps> = ({
         context.beginPath();
         context.moveTo(x,y);
         setIsDrawing(true);
+
+        //Broadcasting the strarting point
+
+        broadcastDrawing({x,y,color:currentColor,brushSize});
     };
 
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -69,6 +110,9 @@ const Whiteboard: React.FC<CanvasProps> = ({
 
         context.lineTo(x,y);
         context.stroke();
+
+        broadcastDrawing({x,y,color:currentColor,brushSize});
+
     };
 
     const stopDrawing = () =>{
@@ -80,6 +124,12 @@ const Whiteboard: React.FC<CanvasProps> = ({
         }
         setIsDrawing(false);
     };
+
+    const broadcastDrawing = (data:DrawingData)=>{
+        if(wsRef.current?.readyState ===  WebSocket.OPEN){
+            wsRef.current.send(JSON.stringify(data));
+        }
+    }
 
     const hanndleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const color = e.target.value;
@@ -116,7 +166,7 @@ const Whiteboard: React.FC<CanvasProps> = ({
 
     return (
         <Container className="mt-4">
-            <Row className="mb-3">
+            <Row className="mb-3 " style={{ display: 'flex', justifyContent: 'space-evenly', backgroundColor: 'lightblue', padding: '1rem' }}>
                 <Col md={4}>
                     <label className="form-label">
                         Color
@@ -158,7 +208,8 @@ const Whiteboard: React.FC<CanvasProps> = ({
                         onMouseDown={startDrawing}
                         onMouseMove={draw}
                         onMouseUp={stopDrawing}
-                        onMouseOut={stopDrawing}
+                        //onMouseOut={stopDrawing}
+                        onMouseLeave={undefined}
                         className="border border-secondary"
                     >
                     </canvas>
