@@ -43,6 +43,10 @@ var NodeVM = require("vm2").NodeVM;
 var http_1 = require("http");
 var cors = require('cors');
 var app = express();
+var axios_1 = require("axios");
+require('dotenv').config();
+var clientID = process.env.CLIENT_ID;
+var clientSecret = process.env.CLIENT_SECRET;
 app.use(express.json());
 app.use(cors());
 var PORT = 8080;
@@ -85,39 +89,47 @@ wss.on('connection', function (ws) {
         console.log('Client disconnected');
     });
 });
+function codeCompiler(code) {
+    return __awaiter(this, void 0, void 0, function () {
+        var API, codePayload, response;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    API = "https://api.jdoodle.com/v1/execute";
+                    codePayload = {
+                        clientId: clientID,
+                        clientSecret: clientSecret,
+                        "script": code,
+                        "stdin": "",
+                        "language": "java",
+                        "versionIndex": "3",
+                        "compileOnly": false
+                    };
+                    return [4 /*yield*/, axios_1.default.post(API, codePayload, {
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                        })];
+                case 1:
+                    response = _a.sent();
+                    console.log(response.data);
+                    return [2 /*return*/, response.data.output];
+            }
+        });
+    });
+}
 app.post("/run", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var code, vm, result, output;
+    var code, output;
     return __generator(this, function (_a) {
-        code = req.body.code;
-        console.log(code);
-        if (!code) {
-            return [2 /*return*/, res.status(400).json({ error: 'No code provided' })];
-        }
-        try {
-            vm = new NodeVM({
-                console: "inherit",
-                sandbox: {},
-                timeout: 1000,
-                wrapper: 'commonjs'
-            });
-            try {
-                result = vm.run(code);
-                console.log("Raw result : ", result);
-                output = typeof result === 'function' ? result() : result;
-                console.log("Processed result:", output);
+        switch (_a.label) {
+            case 0:
+                code = req.body.code;
+                console.log(code);
+                return [4 /*yield*/, codeCompiler(code)];
+            case 1:
+                output = _a.sent();
                 return [2 /*return*/, res.json({ output: output })];
-            }
-            catch (vmerror) {
-                return [2 /*return*/, res.status(400).json({ output: "Error: ".concat(vmerror.message) })];
-            }
-            //  console.log(res.json({output: result}));
-            // res.send({output: result});
         }
-        catch (error) {
-            console.error("Error: ".concat(error));
-            res.status(500).json({ error: "Internal Server Error" });
-        }
-        return [2 /*return*/];
     });
 }); });
 // Start the server

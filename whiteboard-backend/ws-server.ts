@@ -7,6 +7,12 @@ const { NodeVM } = require("vm2");
 import { createServer } from "http";
 const cors = require('cors');
 const app = express();
+import axios from "axios";
+require('dotenv').config(); 
+
+const clientID = process.env.CLIENT_ID;
+const clientSecret = process.env.CLIENT_SECRET
+
 app.use(express.json());
 app.use(cors());
 
@@ -69,38 +75,34 @@ wss.on('connection', (ws: WebSocket) => {
     });
 });
 
+async function codeCompiler(code : string):Promise<string | null>{
+   const API = `https://api.jdoodle.com/v1/execute`;
+   const codePayload = {
+        clientId: clientID,
+        clientSecret: clientSecret,
+        "script": code,
+        "stdin": "",
+        "language": "java",
+        "versionIndex": "3",
+        "compileOnly": false
+   }
+
+    const response = await axios.post(API, codePayload,{
+        headers:{
+            "Content-Type": "application/json"
+        },
+   });
+   console.log(response.data);
+   return response.data.output;
+   
+
+}
 app.post("/run", async (req: Request, res: Response):Promise<any> => {
-    const { code } = req.body;
-    console.log(code);
-    if (!code) {
-        return res.status(400).json({ error: 'No code provided' });
-    }
+     const { code } = req.body;
+     console.log(code);
+     const output = await codeCompiler(code);
+     return res.json({ output: output })
 
-    try {
-        const vm = new NodeVM({
-            console: "inherit",
-            sandbox: {},
-            timeout: 1000,
-            wrapper: 'commonjs' 
-        });
-
-        try {
-            const result = vm.run(code);
-            console.log("Raw result : ",result);
-
-            const output = typeof result === 'function' ? result() : result;
-            console.log("Processed result:", output);
-            return res.json({ output: output });
-        } catch (vmerror) {
-            return res.status(400).json({ output: `Error: ${vmerror.message}` });
-        }
-      //  console.log(res.json({output: result}));
-        
-       // res.send({output: result});
-    } catch (error) {
-        console.error(`Error: ${error}`);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
 });
 
 // Start the server
