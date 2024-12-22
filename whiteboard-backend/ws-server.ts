@@ -1,9 +1,7 @@
 import { json } from "react-router-dom";
 import { WebSocketServer, WebSocket } from "ws";
-//import  express  from "express";
 const express = require('express');
 import { Request, Response } from "express";
-const { NodeVM } = require("vm2");
 import { createServer } from "http";
 const cors = require('cors');
 const app = express();
@@ -32,7 +30,8 @@ interface Message {
     y: number;
     color: string;
     brushSize: number,
-    isStarting: boolean
+    isStarting: boolean,
+    code: string
 }
 
 let history: Message[] = [];
@@ -47,7 +46,7 @@ wss.on('connection', (ws: WebSocket) => {
         }));
     }
 
-    ws.on('message', (data: Buffer) => {
+    ws.on('message',  async (data: Buffer) => {
         const stringData = data.toString();
         console.log('Received:', stringData);
 
@@ -58,6 +57,10 @@ wss.on('connection', (ws: WebSocket) => {
                 history = [message];
             } else if (message.type === 'draw') {
                 history.push(message);
+            }else if(message.type === 'code'){
+                const output = await codeCompiler(message.code);
+                ws.send(JSON.stringify({ type: 'codeOutput', output }));
+                return;
             }
 
             wss.clients.forEach((client) => {
@@ -97,13 +100,13 @@ async function codeCompiler(code : string):Promise<string | null>{
    
 
 }
-app.post("/run", async (req: Request, res: Response):Promise<any> => {
-     const { code } = req.body;
-     console.log(code);
-     const output = await codeCompiler(code);
-     return res.json({ output: output })
+// app.post("/run", async (req: Request, res: Response):Promise<any> => {
+//      const { code } = req.body;
+//      console.log(code);
+//      const output = await codeCompiler(code);
+//      return res.json({ output: output })
 
-});
+// });
 
 // Start the server
 server.listen(PORT, () => {

@@ -37,9 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var ws_1 = require("ws");
-//import  express  from "express";
 var express = require('express');
-var NodeVM = require("vm2").NodeVM;
 var http_1 = require("http");
 var cors = require('cors');
 var app = express();
@@ -64,27 +62,46 @@ wss.on('connection', function (ws) {
             data: history
         }));
     }
-    ws.on('message', function (data) {
-        var stringData = data.toString();
-        console.log('Received:', stringData);
-        try {
-            var message_1 = JSON.parse(stringData);
-            if (message_1.type === 'clear') {
-                history = [message_1];
+    ws.on('message', function (data) { return __awaiter(void 0, void 0, void 0, function () {
+        var stringData, message_1, output, error_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    stringData = data.toString();
+                    console.log('Received:', stringData);
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 6, , 7]);
+                    message_1 = JSON.parse(stringData);
+                    if (!(message_1.type === 'clear')) return [3 /*break*/, 2];
+                    history = [message_1];
+                    return [3 /*break*/, 5];
+                case 2:
+                    if (!(message_1.type === 'draw')) return [3 /*break*/, 3];
+                    history.push(message_1);
+                    return [3 /*break*/, 5];
+                case 3:
+                    if (!(message_1.type === 'code')) return [3 /*break*/, 5];
+                    return [4 /*yield*/, codeCompiler(message_1.code)];
+                case 4:
+                    output = _a.sent();
+                    ws.send(JSON.stringify({ type: 'codeOutput', output: output }));
+                    return [2 /*return*/];
+                case 5:
+                    wss.clients.forEach(function (client) {
+                        if (client.readyState === ws_1.WebSocket.OPEN && client !== ws) {
+                            client.send(JSON.stringify(message_1));
+                        }
+                    });
+                    return [3 /*break*/, 7];
+                case 6:
+                    error_1 = _a.sent();
+                    console.error('Failed to parse message:', error_1);
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
             }
-            else if (message_1.type === 'draw') {
-                history.push(message_1);
-            }
-            wss.clients.forEach(function (client) {
-                if (client.readyState === ws_1.WebSocket.OPEN && client !== ws) {
-                    client.send(JSON.stringify(message_1));
-                }
-            });
-        }
-        catch (error) {
-            console.error('Failed to parse message:', error);
-        }
-    });
+        });
+    }); });
     ws.on('close', function () {
         console.log('Client disconnected');
     });
@@ -118,20 +135,12 @@ function codeCompiler(code) {
         });
     });
 }
-app.post("/run", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var code, output;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                code = req.body.code;
-                console.log(code);
-                return [4 /*yield*/, codeCompiler(code)];
-            case 1:
-                output = _a.sent();
-                return [2 /*return*/, res.json({ output: output })];
-        }
-    });
-}); });
+// app.post("/run", async (req: Request, res: Response):Promise<any> => {
+//      const { code } = req.body;
+//      console.log(code);
+//      const output = await codeCompiler(code);
+//      return res.json({ output: output })
+// });
 // Start the server
 server.listen(PORT, function () {
     console.log("HTTP server running on http://localhost:".concat(PORT));
