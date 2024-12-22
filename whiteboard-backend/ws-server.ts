@@ -31,7 +31,8 @@ interface Message {
     color: string;
     brushSize: number,
     isStarting: boolean,
-    code: string
+    code: string,
+    language: string
 }
 
 let history: Message[] = [];
@@ -58,7 +59,7 @@ wss.on('connection', (ws: WebSocket) => {
             } else if (message.type === 'draw') {
                 history.push(message);
             }else if(message.type === 'code'){
-                const output = await codeCompiler(message.code);
+                const output = await codeCompiler(message.language, message.code);
                 ws.send(JSON.stringify({ type: 'codeOutput', output }));
                 return;
             }
@@ -78,14 +79,14 @@ wss.on('connection', (ws: WebSocket) => {
     });
 });
 
-async function codeCompiler(code : string):Promise<string | null>{
+async function codeCompiler(language: string, code : string):Promise<string | null>{
    const API = `https://api.jdoodle.com/v1/execute`;
    const codePayload = {
         clientId: clientID,
         clientSecret: clientSecret,
         "script": code,
         "stdin": "",
-        "language": "java",
+        "language": language,
         "versionIndex": "3",
         "compileOnly": false
    }
@@ -99,7 +100,7 @@ async function codeCompiler(code : string):Promise<string | null>{
    return response.data.output;
    
 
-}
+}``
 // app.post("/run", async (req: Request, res: Response):Promise<any> => {
 //      const { code } = req.body;
 //      console.log(code);

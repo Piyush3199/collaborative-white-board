@@ -3,10 +3,22 @@ import React, { useEffect, useState } from 'react';
 import Editor, { OnChange } from '@monaco-editor/react';
 import { Row, Col,Dropdown } from 'react-bootstrap';
 import {DropdownButton} from 'react-bootstrap';
+
 const CodeEditor: React.FC = () => {
+    const languageOptions = [
+        { value: 'c', label: 'C' },
+        { value: 'cpp', label: 'C++' },
+        { value: 'java', label: 'Java' },
+        { value: 'python3', label: 'Python 3' },
+        { value: 'javascript', label: 'Node.js' },
+    ];
+
     const [code, setCode] = useState<string>('Write code here');
     const [output, setOutput] = useState<string>('output');
-    const [ws, setWs] = useState<WebSocket | null>(null);
+    const [ws, setWs] = useState<WebSocket | null>(null);    
+    const [language, setLanguage] = useState<string>('c');
+
+
 
     useEffect(()=>{
         const socket = new WebSocket(`ws://localhost:8080`);
@@ -38,6 +50,9 @@ const CodeEditor: React.FC = () => {
         setCode(value || "");
     };
 
+    const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>)=>{
+        setLanguage(event.target.value);
+    }
 
 
     const runCode = async () =>{
@@ -56,6 +71,7 @@ const CodeEditor: React.FC = () => {
             const message = {
                 type: 'code',
                 code,
+                language
             };
             ws.send(JSON.stringify(message));
         }else{
@@ -68,36 +84,26 @@ const CodeEditor: React.FC = () => {
                 <Col md={4}>
                     <label className="form-label">
                         Color
-                        {/* <input 
-                            type="color"
-                            value={currentColor}
-                            onChange={hanndleColorChange}
-                            className="form-control form-control-color"
-                            ></input> */}
                     </label>
                 </Col>
                 <Col md={4}>
                 <label className="form-label">
-                <DropdownButton id="dropdown-basic-button" title="Options">
-                    <Dropdown.Item href="#/action-1">Action 1</Dropdown.Item>
-                    <Dropdown.Item href="#/action-2">Action 2</Dropdown.Item>
-                    <Dropdown.Item href="#/action-3">Action 3</Dropdown.Item>
-                </DropdownButton>
+                <select 
+                    value={language}
+                    onChange={handleLanguageChange}>
+                    {languageOptions.map((option)=>(
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                   
+                </select>
           </label>
                 </Col>
-                <Col md={4}>
-                    Button
-                    {/* <Button
-                        variant="danger"
-                        onClick={handleClear}>
-                        Clear Canvas
-                        </Button> */}
-                 </Col>
         </Row>
+        {language}
         <Editor
             height="100%"
-            defaultLanguage="java"
-            defaultValue={code}
+            language={language}
+            value={code}
             onChange={handleChange}
             theme="vs-dark"
             options={{

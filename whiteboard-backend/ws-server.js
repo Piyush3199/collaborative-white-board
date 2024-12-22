@@ -82,7 +82,7 @@ wss.on('connection', function (ws) {
                     return [3 /*break*/, 5];
                 case 3:
                     if (!(message_1.type === 'code')) return [3 /*break*/, 5];
-                    return [4 /*yield*/, codeCompiler(message_1.code)];
+                    return [4 /*yield*/, codeCompiler(message_1.language, message_1.code)];
                 case 4:
                     output = _a.sent();
                     ws.send(JSON.stringify({ type: 'codeOutput', output: output }));
@@ -106,7 +106,7 @@ wss.on('connection', function (ws) {
         console.log('Client disconnected');
     });
 });
-function codeCompiler(code) {
+function codeCompiler(language, code) {
     return __awaiter(this, void 0, void 0, function () {
         var API, codePayload, response;
         return __generator(this, function (_a) {
@@ -118,7 +118,7 @@ function codeCompiler(code) {
                         clientSecret: clientSecret,
                         "script": code,
                         "stdin": "",
-                        "language": "java",
+                        "language": language,
                         "versionIndex": "3",
                         "compileOnly": false
                     };
@@ -135,6 +135,7 @@ function codeCompiler(code) {
         });
     });
 }
+"";
 // app.post("/run", async (req: Request, res: Response):Promise<any> => {
 //      const { code } = req.body;
 //      console.log(code);
