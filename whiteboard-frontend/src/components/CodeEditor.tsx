@@ -19,7 +19,7 @@ const CodeEditor: React.FC = () => {
     const [language, setLanguage] = useState<string>('c');
 
 
-
+    
     useEffect(()=>{
         const socket = new WebSocket(`ws://localhost:8080`);
         setWs(socket);
@@ -32,6 +32,7 @@ const CodeEditor: React.FC = () => {
             const message = JSON.parse(event.data);
 
             if(message.type === 'codeOutput'){
+                console.log()
                 setOutput(message.output);
             }else{
                 console.log(`Unhandled message type ${message.type}`);
@@ -46,13 +47,48 @@ const CodeEditor: React.FC = () => {
             socket.close();
         };
     },[]);
+
+    useEffect(()=>{
+        if(ws){
+            ws.onmessage = (event) =>{
+                const message = JSON.parse(event.data);
+                if(message.type === "updateCode" && message.code !== undefined){
+                    setCode(message.code);
+                }else if(message.type === 'updateLanguage' && message.language){
+                    setLanguage(message.language);
+                }
+                else if(message.type === "codeUpdate"){
+                    setOutput(message.output);
+                }else{
+                    console.log("Unhandled message type", message.type);
+                }
+
+            };
+        }
+    },[ws]);
     const handleChange = (value: string | undefined) =>{
         setCode(value || "");
+        if(ws && ws.readyState === WebSocket.OPEN){
+            const message = {
+                type: "updateCode",
+                code: value,
+            };
+            ws.send(JSON.stringify(message));
+        }
     };
 
     const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>)=>{
-        setLanguage(event.target.value);
-    }
+        const newLanguage = event.target.value;
+        setLanguage(newLanguage);
+
+        if(ws && ws.readyState === WebSocket.OPEN){
+            const message = {
+                type: "updateLanguage",
+                language: newLanguage,
+            };
+            ws.send(JSON.stringify(message));
+        }
+    };
 
 
     const runCode = async () =>{
@@ -99,7 +135,6 @@ const CodeEditor: React.FC = () => {
           </label>
                 </Col>
         </Row>
-        {language}
         <Editor
             height="100%"
             language={language}

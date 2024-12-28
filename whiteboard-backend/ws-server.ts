@@ -25,7 +25,7 @@ const wss = new WebSocketServer({ server });
 console.log("WS Server started on port 8080");
 
 interface Message {
-    type: 'draw' | 'clear',
+    type: 'draw' | 'clear' | 'code' | "updateCode" | "updateLanguage",
     x: number;
     y: number;
     color: string;
@@ -58,9 +58,29 @@ wss.on('connection', (ws: WebSocket) => {
                 history = [message];
             } else if (message.type === 'draw') {
                 history.push(message);
-            }else if(message.type === 'code'){
+            }else if(message.type === 'updateCode'){
+                wss.clients.forEach((client) => {
+                    if(client.readyState === WebSocket.OPEN && client !== ws){
+                        client.send(JSON.stringify(message));
+                    }
+                });
+            }else if(message.type === 'updateLanguage'){
+                wss.clients.forEach((client) => {
+                    if(client.readyState === WebSocket.OPEN && client !== ws){
+                        client.send(JSON.stringify(message));
+                    }
+                });
+            }
+            else if(message.type === 'code'){
+               // history.push(message);
+                console.log(message);
                 const output = await codeCompiler(message.language, message.code);
                 ws.send(JSON.stringify({ type: 'codeOutput', output }));
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({type: "codeOutput", output}));
+                    }
+                });
                 return;
             }
 
